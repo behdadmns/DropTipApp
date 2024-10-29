@@ -1,65 +1,76 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Image, StyleSheet, Alert } from "react-native";
+import { View, Text, Image, StyleSheet, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiCall } from "../services/apiService";
 import CustomInput from "../components/FloatingLabelInput";
 import CustomButton from "../components/CustomButton";
 import Layout from "../components/Layout";
 
-export default function LoginScreen() {
-  const router = useRouter();
+export default function RegisterScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      console.error("Validation Error", "Email and password are required.");
-      Alert.alert("Validation Error", "Email and password are required.");
+  const handleRegister = async () => {
+    // اعتبارسنجی: بررسی خالی نبودن فیلدها
+    if (!email || !password || !confirmPassword) {
+      Alert.alert("Error", "All fields are required!");
       return;
     }
 
-    const loginData = {
+    // بررسی مطابقت پسوردها
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match!");
+      return;
+    }
+
+    // آماده‌سازی داده‌ها برای API
+    const registerData = {
       email: email,
       password: password,
-      userType: "PRODUCER",
+      hasProducerAccount: true,
     };
 
     setLoading(true);
 
     try {
-      const data = await apiCall("/auth/login/basic", "POST", loginData);
-      console.log("data ", data.data.shop.name);
-      await AsyncStorage.setItem("access_token", data.data.access_token);
-      await AsyncStorage.setItem("refresh_token", data.data.refresh_token);
-      await AsyncStorage.setItem("shop", JSON.stringify(data.data.shop)); // ذخیره به‌صورت رشته
-      await AsyncStorage.setItem("user", JSON.stringify(data.data.user));
-      router.replace("/(authTabs)");
-      Alert.alert("Login Successful", "You have been logged in.");
+      // فراخوانی API ثبت‌نام
+      const response = await apiCall("/auth/register", "POST", registerData);
+      if (response && response.statusCode === 201) {
+        Alert.alert(
+          "Registration Successful",
+          "Check your email to verify your account."
+        );
+        router.replace("/check-email"); // هدایت به صفحه‌ی check-email در صورت موفقیت
+      }
+      // می‌توانید کاربر را به صفحه دیگری هدایت کنید
     } catch (error) {
+   
       if (error instanceof Error) {
         Alert.alert("Login Failed", error.message || "An error occurred.");
       } else {
         Alert.alert("Login Failed", "An unknown error occurred.");
       }
     } finally {
-      setLoading(false);
+      setLoading(false); // غیر فعال کردن حالت لودینگ
     }
   };
+
   return (
     <Layout>
       <View style={styles.container}>
         <Image
           source={{
-            uri: "https://upload-file-droplinked.s3.amazonaws.com/e77a6ee07e8617f7ddc5903d1e121df72b43a3f411ffb4228e107b6d726f9ebd.png",
+            uri: "https://upload-file-droplinked.s3.amazonaws.com/25b5af933969e7a1be8bf31a71f63f415da373a35f8fe3219d9f3e7c1cad48a2.png",
           }}
           style={styles.image}
           resizeMode="contain"
         />
-        <Text style={styles.welcomeText}>Welcome Back</Text>
+        <Text style={styles.welcomeText}>Create Your Account</Text>
         <Text style={styles.subText}>
-          Log in and continue receiving tips with ease.
+          Join now and start tipping in seconds.
         </Text>
 
         <View style={styles.inputsContainer}>
@@ -68,18 +79,25 @@ export default function LoginScreen() {
             value={email}
             onChangeText={setEmail}
           />
+
           <CustomInput
             placeholder="Enter your password"
             value={password}
             onChangeText={setPassword}
             isPassword={true}
           />
-        </View>
 
+          <CustomInput
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            isPassword={true}
+          />
+        </View>
         <View style={styles.buttonContainer}>
           <CustomButton
-            title={loading ? "Logging in..." : "Log In"}
-            onPress={handleLogin}
+            title={loading ? "Registering..." : "Register"}
+            onPress={handleRegister}
             disabled={loading}
           />
         </View>
